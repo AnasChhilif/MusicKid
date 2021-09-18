@@ -3,6 +3,7 @@
 #include <id3v2lib.h>
 #include <string.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
@@ -155,6 +156,7 @@ int main(int argc, char *argv[]){
     //DisplayCover(tag, renderer);
     TextDisplay(track.title, renderer, titler);
     SDL_RenderPresent(renderer);
+    playa(*argv);
     SDL_Delay(3000);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
