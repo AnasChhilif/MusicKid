@@ -15,6 +15,17 @@ struct info{
     char album[100];
 };
 
+/*launches the stream and plays the mp3 file*/
+void playa(char name[]){
+    Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 640);
+    Mix_Music *music = Mix_LoadMUS(name);
+    Mix_PlayMusic(music, 1);
+    while (!SDL_QuitRequested()) {
+        SDL_Delay(250);
+    }
+    Mix_FreeMusic(music);
+}
+
 void PrintData(ID3v2_frame_text_content* data, char *buffer){
     //checking the encoding of the data to see how we treat it
     //see id3.org docs for how text data is encoded, or just id3 wikipedia in the id3v2 section
