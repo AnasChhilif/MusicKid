@@ -22,7 +22,7 @@ void playa(char name[]){
 }
 
 void TextDisplay(char *text, SDL_Renderer *renderer){
-    TTF_Font* font = TTF_OpenFont("src/font.ttf", 1700);
+    TTF_Font* font = TTF_OpenFont("assets/font.ttf", 1700);
     SDL_Color color = {255, 255, 255};
     SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, text, color);
     SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    SDL_Surface *surface = IMG_Load("titled.png");
+    SDL_Surface *surface = IMG_Load("assets/titled.png");
     if (!window){
         printf("error creating surface\n");
         SDL_DestroyRenderer(renderer);
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
 
 /*testing if texture gets created and adjusting accordingly*/
     if(!tex){
-        printf("error creating texture : %s\n", SDL_GetError);
+        printf("error creating texture : %s\n", SDL_GetError());
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -142,3 +142,4 @@ int main(int argc, char **argv) {
     SDL_Quit();
     return 0;
 }
+

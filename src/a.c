@@ -84,7 +84,7 @@ void DisplayCover(ID3v2_tag* tag, SDL_Renderer* renderer){
 }
 
 void TextDisplay(char *text, SDL_Renderer *renderer, SDL_Rect titler){
-    TTF_Font* font = TTF_OpenFont("src/font.ttf", 1700);
+    TTF_Font* font = TTF_OpenFont("assets/font.ttf", 1700);
     SDL_Color color = {0, 0, 0};
     SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, text, color);
     SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
@@ -95,7 +95,7 @@ void TextDisplay(char *text, SDL_Renderer *renderer, SDL_Rect titler){
 }
 
 
-int main(){
+int main(int argc, char *argv[]){
     TTF_Init();
     SDL_Rect titler;
     titler.x = 100;
@@ -106,11 +106,17 @@ int main(){
     SDL_Surface* bgsurf = NULL;
     SDL_Texture* bgtex = NULL;
 
-    ID3v2_tag* tag = load_tag("music/05. God is a woman.mp3"); // Load the full tag from the file
+    if(argc < 2){
+    	printf("Usage: %s <music_file>\n", argv[0]);
+	exit(0);
+    }
+    ID3v2_tag* tag = load_tag(argv[1]); // Load the full tag from the file
     if(tag == NULL)
     {
-	    tag = new_tag();
+	    printf("Error loading id3 tag\nCheck if file has id3\n");
+	    exit(0);
     }
+
     GetInfo(tag, &track);
     printf("outside the function\n");
     printf("%x\n", *track.title);
@@ -130,7 +136,7 @@ int main(){
     );
     renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
-    bgsurf = IMG_Load("src/background.png");
+    bgsurf = IMG_Load("assets/background.png");
     bgtex = SDL_CreateTextureFromSurface(renderer, bgsurf);
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, bgtex, NULL, NULL);
