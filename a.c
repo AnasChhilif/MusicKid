@@ -17,7 +17,7 @@ struct info{
 };
 
 /*launches the stream and plays the mp3 file*/
-void playa(char name[]){
+void playa(char *name){
     Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 640);
     Mix_Music *music = Mix_LoadMUS(name);
     Mix_PlayMusic(music, 1);
@@ -58,23 +58,23 @@ void GetInfo(ID3v2_tag* tag, struct info *track){
     ID3v2_frame_text_content* ConTitle = parse_text_frame_content(FrTitle);
     //Calling PrintData() so we could convert any type of encoding to the usual ascii/utf-8
     PrintData(ConTitle, track->title);
-    printf("%x\n", *track->title);
+    printf("%s\n", track->title);
 
     //Rinse and repeat for all relevant text data we might need to display
     ID3v2_frame* FrArtist = tag_get_artist(tag);
     ID3v2_frame_text_content* ConArtist = parse_text_frame_content(FrArtist);
     PrintData(ConArtist, track->artist);
-    printf("%x\n", *track->artist);
+    printf("%s\n", track->artist);
 
     ID3v2_frame* FrYear = tag_get_year(tag);
     ID3v2_frame_text_content* ConYear = parse_text_frame_content(FrYear);
     PrintData(ConYear, track->year);
-    printf("%x\n", *track->year);
+    printf("%s\n", track->year);
 
     ID3v2_frame* FrAlbum = tag_get_album(tag);
     ID3v2_frame_text_content* ConAlbum = parse_text_frame_content(FrAlbum);
     PrintData(ConAlbum, track->album);
-    printf("%x\n", *track->album);
+    printf("%s\n", track->album);
     return;
 }
 
@@ -95,12 +95,26 @@ void DisplayCover(ID3v2_tag* tag, SDL_Renderer* renderer){
     SDL_DestroyTexture(tex);
 }
 
-void TextDisplay(char *text, SDL_Renderer *renderer, SDL_Rect titler){
-    TTF_Font* font = TTF_OpenFont("assets/font.ttf", 1700);
+void TextDisplay(char *text, SDL_Renderer *renderer, SDL_Rect *titler){
+    TTF_Font* font = TTF_OpenFont("assets/font.ttf", 64);
     SDL_Color color = {0, 0, 0};
-    SDL_Surface* surfaceMessage = TTF_RenderText_Solid(font, text, color);
+    SDL_Surface* surfaceMessage = TTF_RenderText_Blended(font, text, color);
+    if (surfaceMessage == NULL ){
+	printf("Error creating surface : %s\n", SDL_GetError());
+	exit(0);
+    }
+
     SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
-    SDL_RenderCopy(renderer, Message, NULL, &titler);
+    if (Message == NULL ){
+	printf("Error creating texture : %s\n", SDL_GetError());
+	exit(0);
+    }
+
+    int err = SDL_RenderCopy(renderer, Message, NULL, titler);
+    if (err <0){
+	printf("Error copying to renderer : %s\n", SDL_GetError());
+	exit(0);
+    }
     SDL_RenderPresent(renderer);
     SDL_FreeSurface(surfaceMessage);
     SDL_DestroyTexture(Message);
@@ -131,10 +145,10 @@ int main(int argc, char *argv[]){
 
     GetInfo(tag, &track);
     printf("outside the function\n");
-    printf("%x\n", *track.title);
-    printf("%x\n", *track.artist);
-    printf("%x\n", *track.year);
-    printf("%x\n", *track.album);
+    printf("%s\n", track.title);
+    printf("%s\n", track.artist);
+    printf("%s\n", track.year);
+    printf("%s\n", track.album);
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
     SDL_Window* win;
     SDL_Renderer *renderer = NULL;
@@ -154,9 +168,9 @@ int main(int argc, char *argv[]){
     SDL_RenderCopy(renderer, bgtex, NULL, NULL);
 
     //DisplayCover(tag, renderer);
-    TextDisplay(track.title, renderer, titler);
-    SDL_RenderPresent(renderer);
-    playa(*argv);
+    TextDisplay(track.title, renderer, &titler);
+    //SDL_RenderPresent(renderer);
+    playa(argv[1]);
     SDL_Delay(3000);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
