@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iconv.h>
 #include <sys/param.h>
 #include <id3v2lib.h>
 #include <string.h>
@@ -30,24 +31,29 @@ void playa(char *name){
 void PrintData(ID3v2_frame_text_content* data, char *buffer){
     //checking the encoding of the data to see how we treat it
     //see id3.org docs for how text data is encoded, or just id3 wikipedia in the id3v2 section
-    if((data->encoding == 0) || (data->encoding == 3)){
-    // if its ascii or utf-8 we just copy onto the buffer the number of bytes that contain data
-    // following the size variable
-        strncpy(buffer, data->data, MIN(99,data->size*(sizeof(char))));
-        strcat(buffer, "\0");
-        return;
+    if(data->encoding=0){
+        strncpy(buffer, data->data, MAX(99,data->size));
+        strcat(buffer,"\0");
     }
-    else{
-    // if its utf-16 or utf-16BE we delete the two empty bytes between each character so we can
-    // easily output it as ascii
-        int u;
-        for (int i = 0; i<data->size/2; i++){
-            buffer[i] = data->data[2*i];
-            u = i;
-        }
-        buffer[u+1] = '\0';
-        return;
+    else if(data->encoding=1){
+        iconv_t cd = iconv_open("ASCII", "UCS-2");
+        size_t in = data->size;
+        size_t out = 99;
+        iconv(cd, &data->data, &in, &buffer, &out);
     }
+    else if(data->encoding=2){
+        iconv_t cd = iconv_open("ASCII", "UTF-16BE");
+        size_t in = data->size;
+        size_t out = 99;
+        iconv(cd, &data->data, &in, &buffer, &out);
+    }
+    else if(data->encoding=3){
+        iconv_t cd = iconv_open("ASCII", "UTF-8");
+        size_t in = data->size;
+        size_t out = 99;
+        iconv(cd, &data->data, &in, &buffer, &out);
+    }
+        return;
 }
 
 void GetInfo(ID3v2_tag* tag, struct info *track){
@@ -58,23 +64,23 @@ void GetInfo(ID3v2_tag* tag, struct info *track){
     ID3v2_frame_text_content* ConTitle = parse_text_frame_content(FrTitle);
     //Calling PrintData() so we could convert any type of encoding to the usual ascii/utf-8
     PrintData(ConTitle, track->title);
-    printf("%s\n", track->title);
+    printf("%x\n", track->title);
 
     //Rinse and repeat for all relevant text data we might need to display
     ID3v2_frame* FrArtist = tag_get_artist(tag);
     ID3v2_frame_text_content* ConArtist = parse_text_frame_content(FrArtist);
     PrintData(ConArtist, track->artist);
-    printf("%s\n", track->artist);
+    printf("%x\n", track->artist);
 
     ID3v2_frame* FrYear = tag_get_year(tag);
     ID3v2_frame_text_content* ConYear = parse_text_frame_content(FrYear);
     PrintData(ConYear, track->year);
-    printf("%s\n", track->year);
+    printf("%x\n", track->year);
 
     ID3v2_frame* FrAlbum = tag_get_album(tag);
     ID3v2_frame_text_content* ConAlbum = parse_text_frame_content(FrAlbum);
     PrintData(ConAlbum, track->album);
-    printf("%s\n", track->album);
+    printf("%x\n", track->album);
     return;
 }
 
@@ -145,10 +151,10 @@ int main(int argc, char *argv[]){
 
     GetInfo(tag, &track);
     printf("outside the function\n");
-    printf("%s\n", track.title);
-    printf("%s\n", track.artist);
-    printf("%s\n", track.year);
-    printf("%s\n", track.album);
+    printf("%x\n", track.title);
+    printf("%x\n", track.artist);
+    printf("%x\n", track.year);
+    printf("%x\n", track.album);
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
     SDL_Window* win;
     SDL_Renderer *renderer = NULL;
@@ -178,4 +184,3 @@ int main(int argc, char *argv[]){
     SDL_Quit();
     return 0;
 }
-
