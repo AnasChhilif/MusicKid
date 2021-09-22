@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 #include <iconv.h>
 #include <sys/param.h>
 #include <id3v2lib.h>
@@ -9,6 +10,8 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_rwops.h>
+
+extern int errno;
 
 struct info{
     char title[100];
@@ -31,28 +34,27 @@ void playa(char *name){
 void PrintData(ID3v2_frame_text_content* data, char *buffer){
     //checking the encoding of the data to see how we treat it
     //see id3.org docs for how text data is encoded, or just id3 wikipedia in the id3v2 section
-    if(data->encoding=0){
-        strncpy(buffer, data->data, MAX(99,data->size));
+	size_t  in_bytes = (size_t)data->size;
+	size_t  out_bytes = 99;
+	char ** out_buffer = &buffer;
+	char ** in_buffer = &data->data;
+    if(data->encoding==0){
+        strncpy(buffer, data->data, MIN(99,data->size));
         strcat(buffer,"\0");
     }
-    else if(data->encoding=1){
+    else if(data->encoding==1){
         iconv_t cd = iconv_open("ASCII", "UCS-2");
-        size_t in = data->size;
-        size_t out = 99;
-        iconv(cd, &data->data, &in, &buffer, &out);
+        iconv(cd, in_buffer, &in_bytes, out_buffer, &out_bytes);
     }
-    else if(data->encoding=2){
+    else if(data->encoding==2){
         iconv_t cd = iconv_open("ASCII", "UTF-16BE");
-        size_t in = data->size;
-        size_t out = 99;
-        iconv(cd, &data->data, &in, &buffer, &out);
+        iconv(cd, in_buffer, &in_bytes, out_buffer, &out_bytes);
     }
-    else if(data->encoding=3){
+    else if(data->encoding==3){
         iconv_t cd = iconv_open("ASCII", "UTF-8");
-        size_t in = data->size;
-        size_t out = 99;
-        iconv(cd, &data->data, &in, &buffer, &out);
+        iconv(cd, in_buffer, &in_bytes, out_buffer, &out_bytes);
     }
+    perror("Error");
         return;
 }
 
@@ -184,3 +186,4 @@ int main(int argc, char *argv[]){
     SDL_Quit();
     return 0;
 }
+
