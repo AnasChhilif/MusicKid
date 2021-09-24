@@ -13,11 +13,17 @@
 
 extern int errno;
 
+struct text{
+    char *text;
+    Uint16 *text16;
+    int encoding;
+};
+
 struct info{
-    char title[100];
-    char artist[100];
-    char year[100];
-    char album[100];
+    struct text *title;
+    struct text *artist;
+    struct text *album;
+    struct text *year;
 };
 
 /*launches the stream and plays the mp3 file*/
@@ -31,31 +37,22 @@ void playa(char *name){
     Mix_FreeMusic(music);
 }
 
-void PrintData(ID3v2_frame_text_content* data, char *buffer){
+void FillData(ID3v2_frame_text_content* data, struct text *buffer){
     //checking the encoding of the data to see how we treat it
     //see id3.org docs for how text data is encoded, or just id3 wikipedia in the id3v2 section
-	size_t  in_bytes = (size_t)data->size;
-	size_t  out_bytes = 99;
-	char ** out_buffer = &buffer;
-	char ** in_buffer = &data->data;
-    if(data->encoding==0){
-        strncpy(buffer, data->data, MIN(99,data->size));
-        strcat(buffer,"\0");
+    buffer->encoding = data->encoding;
+    if(data->encoding == 0 || data->encoding == 3){
+        strncpy(buffer->text, data->data, data->size);
+        strcat(buffer->text,"\0");
     }
-    else if(data->encoding==1){
-        iconv_t cd = iconv_open("ASCII", "UCS-2");
-        iconv(cd, in_buffer, &in_bytes, out_buffer, &out_bytes);
+    else if(data->encoding == 1 || data->encoding == 2){
+        buffer->text16 = data->data;
     }
-    else if(data->encoding==2){
-        iconv_t cd = iconv_open("ASCII", "UTF-16BE");
-        iconv(cd, in_buffer, &in_bytes, out_buffer, &out_bytes);
+    else{
+        buffer->text = "";
+        buffer->text16 = "";
     }
-    else if(data->encoding==3){
-        iconv_t cd = iconv_open("ASCII", "UTF-8");
-        iconv(cd, in_buffer, &in_bytes, out_buffer, &out_bytes);
-    }
-    perror("Error");
-        return;
+    return;
 }
 
 void GetInfo(ID3v2_tag* tag, struct info *track){
@@ -65,24 +62,20 @@ void GetInfo(ID3v2_tag* tag, struct info *track){
     // We need to parse the frame content to make readable
     ID3v2_frame_text_content* ConTitle = parse_text_frame_content(FrTitle);
     //Calling PrintData() so we could convert any type of encoding to the usual ascii/utf-8
-    PrintData(ConTitle, track->title);
-    printf("%x\n", track->title);
+    FillData(ConTitle, track->title);
 
     //Rinse and repeat for all relevant text data we might need to display
     ID3v2_frame* FrArtist = tag_get_artist(tag);
     ID3v2_frame_text_content* ConArtist = parse_text_frame_content(FrArtist);
-    PrintData(ConArtist, track->artist);
-    printf("%x\n", track->artist);
+    FillData(ConArtist, track->artist);
 
     ID3v2_frame* FrYear = tag_get_year(tag);
     ID3v2_frame_text_content* ConYear = parse_text_frame_content(FrYear);
-    PrintData(ConYear, track->year);
-    printf("%x\n", track->year);
+    FillData(ConYear, track->year);
 
     ID3v2_frame* FrAlbum = tag_get_album(tag);
     ID3v2_frame_text_content* ConAlbum = parse_text_frame_content(FrAlbum);
-    PrintData(ConAlbum, track->album);
-    printf("%x\n", track->album);
+    FillData(ConAlbum, track->album);
     return;
 }
 
@@ -103,10 +96,19 @@ void DisplayCover(ID3v2_tag* tag, SDL_Renderer* renderer){
     SDL_DestroyTexture(tex);
 }
 
-void TextDisplay(char *text, SDL_Renderer *renderer, SDL_Rect *titler){
+void TextDisplay(struct text *text, SDL_Renderer *renderer, SDL_Rect *titler){
     TTF_Font* font = TTF_OpenFont("assets/font.ttf", 64);
     SDL_Color color = {0, 0, 0};
-    SDL_Surface* surfaceMessage = TTF_RenderText_Blended(font, text, color);
+    SDL_Surface* surfaceMessage = NULL;
+
+    if(text->encoding == 0 || text->encoding == 3){
+        surfaceMessage = TTF_RenderText_Blended(font, text->text, color);
+    }
+
+    if(text->encoding == 1 || text->encoding == 2){
+        surfaceMessage = TTF_RenderUNICODE_Blended(font, text->text16, color);
+    }
+
     if (surfaceMessage == NULL ){
 	printf("Error creating surface : %s\n", SDL_GetError());
 	exit(0);
@@ -153,10 +155,6 @@ int main(int argc, char *argv[]){
 
     GetInfo(tag, &track);
     printf("outside the function\n");
-    printf("%x\n", track.title);
-    printf("%x\n", track.artist);
-    printf("%x\n", track.year);
-    printf("%x\n", track.album);
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
     SDL_Window* win;
     SDL_Renderer *renderer = NULL;
@@ -179,7 +177,6 @@ int main(int argc, char *argv[]){
     TextDisplay(track.title, renderer, &titler);
     //SDL_RenderPresent(renderer);
     playa(argv[1]);
-    SDL_Delay(3000);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
     TTF_Quit();
