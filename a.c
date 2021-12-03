@@ -14,8 +14,8 @@
 extern int errno;
 
 struct text{
-    char *text;
-    Uint16 *text16;
+    char text[100];
+    Uint16 text16[100];
     int encoding;
 };
 
@@ -46,11 +46,14 @@ void FillData(ID3v2_frame_text_content* data, struct text *buffer){
         strcat(buffer->text,"\0");
     }
     else if(data->encoding == 1 || data->encoding == 2){
-        buffer->text16 = data->data;
+//        buffer->text16 = data->data;
+        for(int i = 0; i< data->size; i++){
+            buffer->text16[i] = data->data[i];
+        }
     }
     else{
-        buffer->text = "";
-        buffer->text16 = "";
+        strcpy(buffer->text, "");
+        buffer->text16[0] = 0;
     }
     return;
 }
@@ -95,11 +98,18 @@ void DisplayCover(ID3v2_tag* tag, SDL_Renderer* renderer){
     SDL_RenderCopy(renderer, tex, NULL, &cover_pos);
     SDL_DestroyTexture(tex);
 }
-
+void Allocate(struct info *buffer){
+    buffer->title = (struct text*) malloc(sizeof(struct text));
+    buffer->artist = (struct text*) malloc(sizeof(struct text));
+    buffer->album = (struct text*) malloc(sizeof(struct text));
+    buffer->year = (struct text*) malloc(sizeof(struct text));
+    return;
+}
 void TextDisplay(struct text *text, SDL_Renderer *renderer, SDL_Rect *titler){
     TTF_Font* font = TTF_OpenFont("assets/font.ttf", 64);
     SDL_Color color = {0, 0, 0};
     SDL_Surface* surfaceMessage = NULL;
+    printf("%d\n", text->encoding);
 
     if(text->encoding == 0 || text->encoding == 3){
         surfaceMessage = TTF_RenderText_Blended(font, text->text, color);
@@ -139,6 +149,7 @@ int main(int argc, char *argv[]){
     titler.w = 700;
     titler.h = 100;
     struct info track;
+    Allocate(&track);
     SDL_Surface* bgsurf = NULL;
     SDL_Texture* bgtex = NULL;
 
@@ -159,7 +170,7 @@ int main(int argc, char *argv[]){
     SDL_Window* win;
     SDL_Renderer *renderer = NULL;
     win = SDL_CreateWindow(
-        "An SDL2 window",                  // window title
+        "MusicKid",                  // window title
         SDL_WINDOWPOS_UNDEFINED,           // initial x position
         SDL_WINDOWPOS_UNDEFINED,           // initial y position
         960,                               // width, in pixels
@@ -175,7 +186,7 @@ int main(int argc, char *argv[]){
 
     //DisplayCover(tag, renderer);
     TextDisplay(track.title, renderer, &titler);
-    //SDL_RenderPresent(renderer);
+    SDL_RenderPresent(renderer);
     playa(argv[1]);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
@@ -183,4 +194,3 @@ int main(int argc, char *argv[]){
     SDL_Quit();
     return 0;
 }
-
