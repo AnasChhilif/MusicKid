@@ -42,14 +42,24 @@ void FillData(ID3v2_frame_text_content* data, struct text *buffer){
     //see id3.org docs for how text data is encoded, or just id3 wikipedia in the id3v2 section
     buffer->encoding = data->encoding;
     if(data->encoding == 0 || data->encoding == 3){
-        strncpy(buffer->text, data->data, data->size);
+        strncpy(buffer->text, data->data, MIN(data->size, 99));
         strcat(buffer->text,"\0");
     }
     else if(data->encoding == 1 || data->encoding == 2){
 //        buffer->text16 = data->data;
-        for(int i = 0; i< data->size; i++){
-            buffer->text16[i] = data->data[i];
+
+        int k = 0;
+        Uint8 bufferr;
+        for(int i = 0; i< MIN(data->size, 99); i++){
+            bufferr = (unsigned char) data->data[i];
+            printf("buffer value : %d\n", bufferr);
+            printf("%d         %d\n", i, k);
+            if(bufferr < 200 && bufferr != 0){
+                buffer->text16[k] = bufferr;
+                k++;
+            }
         }
+
     }
     else{
         strcpy(buffer->text, "");
@@ -148,6 +158,11 @@ int main(int argc, char *argv[]){
     titler.y = 150;
     titler.w = 700;
     titler.h = 100;
+    SDL_Rect namer;
+    namer.x = 50;
+    namer.y = 375;
+    namer.w = 300;
+    namer.h = 40;
     struct info track;
     Allocate(&track);
     SDL_Surface* bgsurf = NULL;
@@ -186,6 +201,7 @@ int main(int argc, char *argv[]){
 
     //DisplayCover(tag, renderer);
     TextDisplay(track.title, renderer, &titler);
+    TextDisplay(track.artist, renderer, &namer);
     SDL_RenderPresent(renderer);
     playa(argv[1]);
     SDL_DestroyRenderer(renderer);
