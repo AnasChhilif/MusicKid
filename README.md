@@ -18,6 +18,10 @@ A next generation media player, with vim-like bindings
 ## Features
 * Playing music and displaying relevant info (Album cover, Track title, artist, etc...)
 
+## Currently Working on
+* Making the Musickid window responsive so you can resize it all you want with no problem
+* Adding all the shortcuts for playing, pausing, skipping, etc ...
+* Adding a data-base like feature with SQLite so you can play music and queue up playlists in Musickid rather than loading up mp3s as arguments in the terminal
 ## Shortcuts
 
 ## Frequently Asked Questions
