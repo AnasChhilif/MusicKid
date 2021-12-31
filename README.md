@@ -16,9 +16,14 @@ A next generation media player, with vim-like bindings
     make
     ```
 ## Features
+    Playing music and displaying relevant info (Album cover, Track title, artist, etc...)
 
 ## Shortcuts
 
 ## Frequently Asked Questions
+* Why ?
+Why not ? ¯\_(ツ)_/¯
 
 ## Authors
+* Anas Chhilif
+* Noaman Fakhir
