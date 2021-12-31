@@ -26,8 +26,8 @@ struct info{
     struct text *year;
 };
 
-/*launches the stream and plays the mp3 file*/
-void playa(char *name){
+void Player(char *name){
+//Initializing the mixer API and loading the mp3 file and playing it.
     Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 640);
     Mix_Music *music = Mix_LoadMUS(name);
     Mix_PlayMusic(music, 1);
@@ -38,23 +38,23 @@ void playa(char *name){
 }
 
 void FillData(ID3v2_frame_text_content* data, struct text *buffer){
+    buffer->encoding = data->encoding; // copying the encoding in the id3 frame to the struct var.
     //checking the encoding of the data to see how we treat it
     //see id3.org docs for how text data is encoded, or just id3 wikipedia in the id3v2 section
-    buffer->encoding = data->encoding;
+
     if(data->encoding == 0 || data->encoding == 3){
+        //If it's encoded in ASCII or UTF-8, it's just copied into the text string.
         strncpy(buffer->text, data->data, MIN(data->size, 99));
         strcat(buffer->text,"\0");
     }
     else if(data->encoding == 1 || data->encoding == 2){
-//        buffer->text16 = data->data;
-
+        //If it's UTF-16BE or UCS-2, it gets copied byte by byte to the variable, ignoring frequent
+        //garbage values as well as zeros.
         int k = 0;
         Uint8 bufferr;
         for(int i = 0; i< MIN(data->size, 99); i++){
             bufferr = (unsigned char) data->data[i];
-            printf("buffer value : %d\n", bufferr);
-            printf("%d         %d\n", i, k);
-            if(bufferr < 200 && bufferr != 0){
+            if((bufferr < 254 || bufferr > 255) && bufferr != 0){
                 buffer->text16[k] = bufferr;
                 k++;
             }
@@ -62,6 +62,7 @@ void FillData(ID3v2_frame_text_content* data, struct text *buffer){
 
     }
     else{
+        // if encoding isn't there, the variable is just filled with an empty value.
         strcpy(buffer->text, "");
         buffer->text16[0] = 0;
     }
@@ -93,12 +94,14 @@ void GetInfo(ID3v2_tag* tag, struct info *track){
 }
 
 void DisplayCover(ID3v2_tag* tag, SDL_Renderer* renderer){
+    // setting the dimensions and position of the album cover
     SDL_Rect cover_pos;
-    cover_pos.w = 320;
-    cover_pos.h = 320;
-    cover_pos.x = 100;
-    cover_pos.y = 100;
+    cover_pos.w = 230;
+    cover_pos.h = 230;
+    cover_pos.x = 200;
+    cover_pos.y = 70;
 
+    //getting the info necessary from the mp3 file then loading and displaying the album cover
     ID3v2_frame* cover = tag_get_album_cover(tag);
     ID3v2_frame_apic_content* cover_content = parse_apic_frame_content(cover);
     SDL_RWops *rw = SDL_RWFromConstMem(cover_content->data, cover_content->picture_size);
@@ -108,19 +111,32 @@ void DisplayCover(ID3v2_tag* tag, SDL_Renderer* renderer){
     SDL_RenderCopy(renderer, tex, NULL, &cover_pos);
     SDL_DestroyTexture(tex);
 }
-void Allocate(struct info *buffer){
+
+void AllocateStruct(struct info *buffer){
+    //Allocating all necessary memory space for the info struct
     buffer->title = (struct text*) malloc(sizeof(struct text));
     buffer->artist = (struct text*) malloc(sizeof(struct text));
     buffer->album = (struct text*) malloc(sizeof(struct text));
     buffer->year = (struct text*) malloc(sizeof(struct text));
     return;
 }
-void TextDisplay(struct text *text, SDL_Renderer *renderer, SDL_Rect *titler){
-    TTF_Font* font = TTF_OpenFont("assets/font.ttf", 64);
-    SDL_Color color = {0, 0, 0};
-    SDL_Surface* surfaceMessage = NULL;
-    printf("%d\n", text->encoding);
 
+void FreeStruct(struct info *buffer){
+    //Freeing all memory previously allocated for the info struct
+    free(buffer->title);
+    free(buffer->artist);
+    free(buffer->album);
+    free(buffer->year);
+}
+void TextDisplay(struct text *text, SDL_Renderer *renderer, SDL_Rect *titler){
+    //Displaying whatever text we want based on whatever dimensions we give
+    TTF_Font* font = TTF_OpenFont("assets/font.ttf", 64); // Loading up the font
+    SDL_Color color = {255, 255, 255}; // setting up the color of the text
+
+    //Declaring the surface variable
+    SDL_Surface* surfaceMessage = NULL;
+
+    //Rendering the text based on the encoding of the data.
     if(text->encoding == 0 || text->encoding == 3){
         surfaceMessage = TTF_RenderText_Blended(font, text->text, color);
     }
@@ -129,22 +145,27 @@ void TextDisplay(struct text *text, SDL_Renderer *renderer, SDL_Rect *titler){
         surfaceMessage = TTF_RenderUNICODE_Blended(font, text->text16, color);
     }
 
+    //Testing if the text is rendered succesfully.
     if (surfaceMessage == NULL ){
 	printf("Error creating surface : %s\n", SDL_GetError());
 	exit(0);
     }
 
+    //Creating the texture of the text to be displayed
     SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
     if (Message == NULL ){
 	printf("Error creating texture : %s\n", SDL_GetError());
 	exit(0);
     }
 
+    //Copying the Message data to the renderer and storing the functions output for bug testing.
     int err = SDL_RenderCopy(renderer, Message, NULL, titler);
     if (err <0){
 	printf("Error copying to renderer : %s\n", SDL_GetError());
 	exit(0);
     }
+
+    //Presenting the Result and freeing all unused memory space
     SDL_RenderPresent(renderer);
     SDL_FreeSurface(surfaceMessage);
     SDL_DestroyTexture(Message);
@@ -152,22 +173,29 @@ void TextDisplay(struct text *text, SDL_Renderer *renderer, SDL_Rect *titler){
 
 
 int main(int argc, char *argv[]){
+    //Initializing the TTF library and declaring the rect for dimensions and positions to display
+    //text (will be changed once I include responsive capabilities to the program).
     TTF_Init();
     SDL_Rect titler;
-    titler.x = 100;
-    titler.y = 150;
-    titler.w = 700;
-    titler.h = 100;
+    titler.x = 150;
+    titler.y = 325;
+    titler.w = 200;
+    titler.h = 50;
     SDL_Rect namer;
-    namer.x = 50;
-    namer.y = 375;
-    namer.w = 300;
-    namer.h = 40;
+    namer.x = 800;
+    namer.y = 200;
+    namer.w = 75;
+    namer.h = 30;
+
+    //Declaring the info struct and allocating memory for it using the function declared before
     struct info track;
-    Allocate(&track);
+    AllocateStruct(&track);
+
+    //Declaring the surface and structure variables
     SDL_Surface* bgsurf = NULL;
     SDL_Texture* bgtex = NULL;
 
+    //Testing for errors
     if(argc < 2){
     	printf("Usage: %s <music_file>\n", argv[0]);
 	exit(0);
@@ -179,11 +207,13 @@ int main(int argc, char *argv[]){
 	    exit(0);
     }
 
+    //Gathering all needed data from the mp3 file and filling the track variable with said data.
     GetInfo(tag, &track);
-    printf("outside the function\n");
+    //Initializing video and audio, creating a window, and loading the background image..
     SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO);
     SDL_Window* win;
     SDL_Renderer *renderer = NULL;
+
     win = SDL_CreateWindow(
         "MusicKid",                  // window title
         SDL_WINDOWPOS_UNDEFINED,           // initial x position
@@ -192,18 +222,22 @@ int main(int argc, char *argv[]){
         540,                               // height, in pixels
         SDL_WINDOW_OPENGL                  // flags - see below
     );
-    renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
-    bgsurf = IMG_Load("assets/background.png");
+    renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+    bgsurf = IMG_Load("assets/titled.png");
     bgtex = SDL_CreateTextureFromSurface(renderer, bgsurf);
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, bgtex, NULL, NULL);
 
-    //DisplayCover(tag, renderer);
+    //Displaying the title and artist name and the album cover, then playing the music selected
+    //by the user
+    DisplayCover(tag, renderer);
     TextDisplay(track.title, renderer, &titler);
     TextDisplay(track.artist, renderer, &namer);
     SDL_RenderPresent(renderer);
-    playa(argv[1]);
+    Player(argv[1]);
+    //Freeing all unused memory before finishing the execution
+    FreeStruct(&track);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
     TTF_Quit();
