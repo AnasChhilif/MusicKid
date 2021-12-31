@@ -22,7 +22,7 @@ A next generation media player, with vim-like bindings
 
 ## Frequently Asked Questions
 * Why ?
->Why not ? **¯\\__(ツ)__/¯**
+>Why not ? **¯\_(ツ)_/¯**
 
 ## Authors
 * Anas Chhilif
