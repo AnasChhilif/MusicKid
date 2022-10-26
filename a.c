@@ -76,20 +76,38 @@ void GetInfo(ID3v2_tag* tag, struct info *track){
     // We need to parse the frame content to make readable
     ID3v2_frame_text_content* ConTitle = parse_text_frame_content(FrTitle);
     //Calling PrintData() so we could convert any type of encoding to the usual ascii/utf-8
-    FillData(ConTitle, track->title);
-
+    if(ConTitle != NULL){
+    	FillData(ConTitle, track->title);
+    }
+    else{
+	strcpy(track->title->text, "Track  Unknown");
+    }
     //Rinse and repeat for all relevant text data we might need to display
     ID3v2_frame* FrArtist = tag_get_artist(tag);
     ID3v2_frame_text_content* ConArtist = parse_text_frame_content(FrArtist);
-    FillData(ConArtist, track->artist);
-
+    if(ConArtist != NULL){
+    	FillData(ConArtist, track->artist);
+    }
+    else{
+	strcpy(track->artist->text, "Artist Unknown");
+    }
     ID3v2_frame* FrYear = tag_get_year(tag);
     ID3v2_frame_text_content* ConYear = parse_text_frame_content(FrYear);
-    FillData(ConYear, track->year);
+    if(ConYear != NULL){
+    	FillData(ConYear, track->year);
+    }
+    else{
+	strcpy(track->year->text, "Date Unknown");
+    }
 
     ID3v2_frame* FrAlbum = tag_get_album(tag);
     ID3v2_frame_text_content* ConAlbum = parse_text_frame_content(FrAlbum);
-    FillData(ConAlbum, track->album);
+    if(ConAlbum != NULL){
+	FillData(ConAlbum, track->album);
+    }
+    else{
+	strcpy(track->album->text, "Album Unknown");
+    }
     return;
 }
 
@@ -103,13 +121,24 @@ void DisplayCover(ID3v2_tag* tag, SDL_Renderer* renderer){
 
     //getting the info necessary from the mp3 file then loading and displaying the album cover
     ID3v2_frame* cover = tag_get_album_cover(tag);
-    ID3v2_frame_apic_content* cover_content = parse_apic_frame_content(cover);
-    SDL_RWops *rw = SDL_RWFromConstMem(cover_content->data, cover_content->picture_size);
-    SDL_Surface *img = IMG_Load_RW(rw, 1);
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, img);
-    SDL_FreeSurface(img);
-    SDL_RenderCopy(renderer, tex, NULL, &cover_pos);
-    SDL_DestroyTexture(tex);
+    if (cover != NULL){
+	ID3v2_frame_apic_content* cover_content = parse_apic_frame_content(cover);
+	SDL_RWops *rw = SDL_RWFromConstMem(cover_content->data, cover_content->picture_size);
+	SDL_Surface *img = IMG_Load_RW(rw, 1);
+	SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, img);
+	SDL_FreeSurface(img);
+	SDL_RenderCopy(renderer, tex, NULL, &cover_pos);
+	SDL_DestroyTexture(tex);
+    }
+    else{
+	SDL_Surface* bgsurf = NULL;
+	SDL_Texture* bgtex = NULL;
+	bgsurf = IMG_Load("assets/default cover.png");
+	bgtex = SDL_CreateTextureFromSurface(renderer, bgsurf);
+	SDL_FreeSurface(bgsurf);
+	SDL_RenderCopy(renderer, bgtex, NULL, &cover_pos);
+	SDL_DestroyTexture(bgtex);
+    }
 }
 
 void AllocateStruct(struct info *buffer){
@@ -244,3 +273,4 @@ int main(int argc, char *argv[]){
     SDL_Quit();
     return 0;
 }
+
